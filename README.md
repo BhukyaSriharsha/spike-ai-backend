@@ -1,229 +1,208 @@
-Spike AI — Multi-Agent Analytics & SEO Intelligence Backend
+# Spike AI — Multi-Agent Analytics & SEO Intelligence Backend
 
-Spike AI Builder Hackathon Submission
+**Spike AI Builder Hackathon Submission**
 
-API: Single POST endpoint
-Port: 8080
-Execution: bash deploy.sh
-Status: ✅ Tier-1 GA4 PASSED · ✅ Tier-2 SEO PASSED · Tier-3 Implemented
+- **API:** Single POST endpoint  
+- **Port:** 8080  
+- **Execution:** `bash deploy.sh`  
+- **Status:** ✅ Tier-1 GA4 PASSED · ✅ Tier-2 SEO PASSED · Tier-3 Implemented  
 
-TL;DR (For Judges)
+---
 
-Single evaluation API: POST /query
+## TL;DR (For Judges)
 
-Tier-1 GA4 Analytics Agent: PASSED
+- Single evaluation API: `POST /query`
+- Tier-1 GA4 Analytics Agent: ✅ PASSED
+- Tier-2 SEO Audit Agent: ✅ PASSED
+- Evaluator-safe credentials (`credentials.json`)
+- No hardcoded property IDs or secrets
+- Robust to empty / low-traffic data
+- `bash deploy.sh` starts everything on port 8080
+- Production-ready, extensible agent architecture
 
-Tier-2 SEO Audit Agent: PASSED
-
-Evaluator-safe credentials (credentials.json)
-
-No hardcoded property IDs or secrets
-
-Robust to empty / low-traffic data
-
-bash deploy.sh starts everything on port 8080
-
-Production-ready, extensible agent architecture
+---
 
 ## Architecture Diagram
 
 ![Architecture Diagram](docs/architecture.png)
 
-1. Project Overview
+---
+
+## 1. Project Overview
 
 Spike AI is a production-ready AI backend that answers natural-language questions about:
 
-Web Analytics (Google Analytics 4) — Tier-1
+- **Web Analytics (Google Analytics 4)** — Tier-1  
+- **SEO & Technical Audits (Screaming Frog via Google Sheets)** — Tier-2  
 
-SEO & Technical Audits (Screaming Frog via Google Sheets) — Tier-2
+The system uses an agent-based architecture with a central orchestrator and exposes **one single HTTP POST API**.
 
-The system uses an agent-based architecture with a central orchestrator, exposes one single HTTP POST API, and is designed to be:
+**Key properties:**
+- Evaluator-safe
+- Property-agnostic
+- Robust to empty or sparse data
+- Extensible to additional analytics domains
 
-Evaluator-safe
+No UI is required or used for evaluation.
 
-Property-agnostic
+---
 
-Robust to empty or sparse data
+## 2. Core Architecture
 
-Extensible to additional analytics domains
+POST /query
+|
+v
+Tier-3 Orchestrator
+|
++-- Intent Detection
+|
++-- GA4 Analytics Agent (Tier-1)
+|
++-- SEO Audit Agent (Tier-2)
+|
+v
+Response Synthesis
+|
+v
+Unified JSON Response
 
-No user-facing UI is required or used for evaluation.
+yaml
+Copy code
 
-2. Core Architecture
-   POST /query
-   |
-   v
-   Tier-3 Orchestrator
-   |
-   +── Intent Detection
-   |
-   +── GA4 Analytics Agent (Tier-1)
-   |
-   +── SEO Audit Agent (Tier-2)
-   |
-   v
-   Response Synthesis
-   |
-   v
-   Unified JSON Response
+### Design Principles
 
-Design Principles
+- Single API surface for evaluation
+- Agents are isolated and domain-specific
+- No hardcoded credentials or property IDs
+- Defensive validation before external API calls
+- Never crashes on bad or empty data
 
-One API surface for evaluation
+---
 
-Agents are isolated and domain-specific
+## 3. API Contract (Evaluation Interface)
 
-No hardcoded credentials or property IDs
+### Endpoint
 
-Defensive validation before calling external APIs
+POST http://localhost:8080/query
 
-Never crash on bad or empty data
+bash
+Copy code
 
-3. API Contract (STRICT – Evaluation Interface)
-   Endpoint
-   POST http://localhost:8080/query
+### GA4 Query
 
-Request Formats
-
-GA4 Queries
-
+```json
 {
-"propertyId": "<GA4_PROPERTY_ID>",
-"query": "Natural language analytics question"
+  "propertyId": "<GA4_PROPERTY_ID>",
+  "query": "Natural language analytics question"
 }
-
-SEO Queries
-
+SEO Query
+json
+Copy code
 {
-"query": "Natural language SEO question"
+  "query": "Natural language SEO question"
 }
-
 ⚠️ This is the only interface used for evaluation.
 
 4. Tier-1: Analytics Agent (GA4)
-   Purpose
-
+Purpose
 Answer natural-language analytics questions using live Google Analytics 4 Data API.
 
-Key Capabilities
-
+Capabilities
 Uses GA4 Data API only (no static exports)
 
 Loads credentials from credentials.json at runtime
 
 Accepts evaluator-provided propertyId
 
-Infers from natural language:
+Infers metrics, dimensions, and date ranges from natural language
 
-Metrics (users, sessions, page views, etc.)
+Enforces strict GA4 allowlist validation
 
-Dimensions (date, country, page path, device)
+Graceful Handling
+Empty GA4 properties
 
-Date ranges (last 7 / 14 / 30 days)
+Low-traffic data
 
-Enforces strict allowlist validation
+Partial results
 
-Handles:
+Safety Behavior
+Invalid metrics/dimensions are ignored
 
-Empty result sets
+If no valid metric exists, returns a structured error
 
-Low-traffic properties
-
-Partial GA4 data
-
-Allowlist & Safety
-
-Only approved GA4 metrics and dimensions are sent to GA4
-
-Invalid fields are ignored
-
-If no valid metric exists → structured error (never a crash)
-
-Example:
-
+json
+Copy code
 {
-"type": "error",
-"message": "No valid GA4 metrics inferred"
+  "type": "error",
+  "message": "No valid GA4 metrics inferred"
 }
+Credentials
+File name: credentials.json
 
-Credentials Handling (Evaluator-Safe)
-
-Service account file must be named credentials.json
-
-Must exist at project root
+Location: project root
 
 Loaded via:
 
+python
+Copy code
 Credentials.from_service_account_file("credentials.json")
-
-Evaluators can replace the file without code changes
+Evaluators can replace this file without code changes.
 
 Tier-1 Status
-
-✅ PASSED — Meets all evaluation criteria
+✅ PASSED
 
 5. Tier-2: SEO Agent (Screaming Frog via Google Sheets)
-   Data Source
-
-Live Google Sheet (CSV export) provided by Spike AI
+Data Source
+Live Google Sheet (CSV export)
 
 Contains:
 
-URL
+URLs
 
 HTTP status
 
 HTTPS usage
 
-Accessibility / WCAG violations
+WCAG / accessibility violations
 
-PSI (PageSpeed Insights) errors
+PSI errors
 
 Capabilities
-
 Live ingestion (no static files)
 
-Schema-aware column resolution
+Schema-aware column handling
 
 Query-aware filtering & aggregation
-
-Handles missing or empty columns safely
 
 Never crashes on unsupported queries
 
 Example Response
+json
+Copy code
 {
-"agent": "seo",
-"response": {
-"type": "filter",
-"count": 1,
-"rows": [
-{ "address": "http://getspike.ai/about" }
-]
+  "agent": "seo",
+  "response": {
+    "type": "filter",
+    "count": 1,
+    "rows": [
+      { "address": "http://getspike.ai/about" }
+    ]
+  }
 }
-}
-
 Tier-2 Status
-
 ✅ PASSED
 
 6. Tier-3: Multi-Agent Orchestrator
-   Role
-
-Acts as the central decision-making layer.
-
 Responsibilities
-
 Intent detection (GA4 vs SEO)
 
-Safe routing to one or more agents
+Safe routing to agents
 
-Parallel agent execution
+Parallel execution
 
 Unified response synthesis
 
-Key Properties
-
+Properties
 Deterministic routing
 
 No early returns
@@ -233,29 +212,31 @@ Supports GA4 + SEO fusion
 Never returns raw exceptions
 
 7. Deployment & Execution
-   Requirements
-
+Requirements
 Python 3.11+
 
 .venv at repo root
 
-credentials.json at repo root (replaced by evaluators)
+credentials.json at repo root
 
-Environment Configuration (LLM)
+LLM Environment Configuration
+This project uses LiteLLM for natural-language reasoning.
 
-This project uses a LiteLLM proxy for natural-language reasoning.
+Set environment variables:
 
-The following environment variables must be set at runtime:
+bash
+Copy code
+export LITELLM_API_KEY=<your_key>
+export LITELLM_BASE_URL=<your_base_url>
+No secrets are hardcoded
 
-export LITELLM_API_KEY=<your_litellm_api_key>
-export LITELLM_BASE_URL=<your_litellm_base_url>
+.env may be empty (acceptable)
 
-These values are not hardcoded and can be overridden by evaluators without code changes.
-
-Evaluator Command
+Run
+bash
+Copy code
 bash deploy.sh
-
-deploy.sh Guarantees
+deploy.sh:
 
 Creates .venv
 
@@ -263,118 +244,97 @@ Installs dependencies
 
 Starts FastAPI on port 8080
 
-Runs server in background
-
 No manual steps required
 
 8. Error Handling & Robustness
-
-The system:
-
 Never crashes on bad input
 
-Handles missing propertyId gracefully
+Handles missing propertyId
 
-Handles empty GA4 datasets
+Handles empty GA4 results
 
 Handles schema changes in SEO data
-
-Avoids hallucinated data
 
 Returns structured, explainable responses
 
 9. Assumptions & Limitations
-   Assumptions
+Assumptions
+GA4 properties may have zero traffic
 
-GA4 properties may contain zero traffic
+Evaluators replace credentials and property IDs
 
-Evaluators will replace credentials and property IDs
-
-SEO sheet schema may vary
+SEO schema may vary
 
 Limitations
-
 SEO agent focuses on technical & accessibility data
 
-No frontend UI (not required for evaluation)
+No frontend UI (not required)
 
-Logic prioritizes correctness over visualization
+Correctness prioritized over visualization
 
 10. Extensibility
-
-New agents can be added without changing the API:
+The architecture supports adding new agents without API changes:
 
 Google Search Console
 
-Ads performance
+Ads analytics
 
 Core Web Vitals
 
 CRM / Sales analytics
 
-11. Demo Plan (5–7 minutes)
+11. Demo Plan (5–7 Minutes)
+Run bash deploy.sh
 
-Start server with bash deploy.sh
+Execute:
 
-Run:
-
-One SEO query (HTTPS or accessibility)
+One SEO query
 
 One GA4 analytics query
 
 Explain:
 
-Single API contract
+Single API
 
 Live data usage
 
 Allowlist safety
 
-Graceful empty responses
+Empty-data handling
 
 12. Evaluation Alignment
-    Criterion Status
-    Correctness ✅
-    Robustness ✅
-    Reasoning clarity ✅
-    System & agent design ✅
-    Production readiness ✅
-    Multi-domain extensibility ✅
-    Intellectual Property & Attribution
+Criteria	Status
+Correctness	✅
+Robustness	✅
+Reasoning clarity	✅
+System design	✅
+Production readiness	✅
+Multi-domain extensibility	✅
 
+Intellectual Property & Attribution
 This project is original work created for the Spike AI Builder Hackathon.
 
-External Libraries & Frameworks Used
+Libraries Used
+FastAPI
 
-FastAPI — API framework
+Uvicorn
 
-Uvicorn — ASGI server
+google-analytics-data
 
-google-analytics-data — Official GA4 Data API client
+google-auth
 
-google-auth — Google authentication
+Pandas
 
-Pandas — Data handling
+LiteLLM
 
-LiteLLM — LLM abstraction layer (used via provided endpoint)
-
-All libraries are used in accordance with their respective open-source licenses.
-
-LLM Usage
-
-Natural-language reasoning is performed using LiteLLM
-
-No prompts, code, or logic were copied from other participants or proprietary sources
-
-All agent logic, validation, orchestration, and error handling were implemented manually
+All used in compliance with their licenses.
 
 Compliance
-
 No plagiarism
 
 No proprietary code copied
 
-All external dependencies clearly documented
+All dependencies documented
 
 Final Status
 
